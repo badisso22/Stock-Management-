@@ -9,10 +9,31 @@ public class Main {
     private static final StockService service = new StockService();
     private static final ProductDAO productDAO = new ProductDAO();
     private static final MovementDAO movementDAO = new MovementDAO();
+    private static final AuthService authService = new AuthService();
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         boolean running = true;
+
+        User currentUser = null;
+        int attempts = 0;
+        while (currentUser == null && attempts < 3) {
+            System.out.print("Username: ");
+            String u = sc.nextLine().trim();
+            System.out.print("Password: ");
+            String p = sc.nextLine().trim();
+            currentUser = authService.login(u, p);
+            if (currentUser == null) {
+                System.out.println("Invalid credentials.");
+                attempts++;
+            }
+        }
+        if (currentUser == null) {
+            System.out.println("Too many failed attempts. Exiting.");
+            sc.close();
+            return;
+        }
+        System.out.println("Logged in as " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
 
         while (running) {
             System.out.println("\n--- STOCK MANAGEMENT ---");
@@ -30,10 +51,19 @@ public class Main {
 
             try {
                 switch (choice) {
-                    case 1 -> addProduct(sc);
+                    case 1 -> {
+                        if (currentUser.getRole() == Role.ADMIN) addProduct(sc);
+                        else System.out.println("Permission denied: Admins only.");
+                    }
                     case 2 -> listProducts();
-                    case 3 -> updateProduct(sc);
-                    case 4 -> deleteProduct(sc);
+                    case 3 -> {
+                        if (currentUser.getRole() == Role.ADMIN) updateProduct(sc);
+                        else System.out.println("Permission denied: Admins only.");
+                    }
+                    case 4 -> {
+                        if (currentUser.getRole() == Role.ADMIN) deleteProduct(sc);
+                        else System.out.println("Permission denied: Admins only.");
+                    }
                     case 5 -> recordEntry(sc);
                     case 6 -> recordExit(sc);
                     case 7 -> showHistory(sc);
